@@ -57,6 +57,12 @@
           placeholder="Select Model"
           aria-label="Model"
         >
+          <div class="dropdown-header">
+            <span>Select Model</span>
+            <button class="dropdown-refresh" @click.stop="refreshModels" title="Refresh Models">
+              <span class="material-symbols-outlined">refresh</span>
+            </button>
+          </div>
           <DropdownOption
             v-for="optionModel in models"
             :key="optionModel.id"
@@ -79,6 +85,14 @@
           <span class="material-symbols-outlined">send</span>
         </button>
         <button v-else @click="stop" class="stop-btn" />
+      </div>
+    </div>
+    <!-- Overlay for Ollama model pulling -->
+    <div class="model-pulling-overlay" v-if="isModelPulling">
+      <div class="model-pulling-content">
+        <span class="spinner"></span>
+        <p>Pulling Ollama model...</p>
+        <p class="model-pulling-info">This may take a few minutes for the first time.</p>
       </div>
     </div>
   </div>
@@ -141,6 +155,7 @@ export default {
       askingPermission: ai.askingPermission,
       acceptPermission: ai.acceptPermission,
       rejectPermission: ai.rejectPermission,
+      isModelPulling: ai.isModelPulling,
     };
   },
 
@@ -370,8 +385,18 @@ export default {
         this.$refs.scrollContainerRef.scrollHeight;
     },
     selectModel(model: Model) {
-      this.setModel(model.provider, model.id);
-      this.model = model;
+      if (model) {
+        this.setModel(model.provider, model.id);
+        this.model = model;
+        
+        // If the model is from Ollama, make sure we have the latest model list
+        if (model.provider === "ollama") {
+          useChatStore().syncModels();
+        }
+      }
+    },
+    refreshModels() {
+      useChatStore().syncModels();
     },
   },
   directives: {

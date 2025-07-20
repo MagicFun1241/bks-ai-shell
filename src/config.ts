@@ -5,7 +5,7 @@ import { getConnectionInfo, getTables } from "@beekeeperstudio/plugin";
 export async function getDefaultInstructions() {
   const response = await getConnectionInfo();
   const tables = await getTables().then((tables) =>
-    tables.filter(
+    tables?.filter(
       (table) =>
         table.schema !== "information_schema" &&
         table.schema !== "pg_catalog" &&
@@ -16,13 +16,13 @@ export async function getDefaultInstructions() {
   );
   let result = instructions;
   result = result.replace("{current_date}", getCurrentDateFormatted());
-  result = result.replace("{connection_type}", response.connectionType);
-  result = result.replace("{read_only_mode}", response.readOnlyMode.toString());
-  result = result.replace("{database_name}", response.databaseName);
-  result = result.replace("{default_schema}", response.defaultSchema || "");
+  result = result.replace("{connection_type}", response?.connectionType);
+  result = result.replace("{read_only_mode}", response?.readOnlyMode.toString());
+  result = result.replace("{database_name}", response?.databaseName);
+  result = result.replace("{default_schema}", response?.defaultSchema || "");
   result = result.replace("{tables}", JSON.stringify(tables));
 
-  if (response.connectionType === "mongodb") {
+  if (response?.connectionType === "mongodb") {
     result = mongodbInstructions.replace("{instructions.txt}", result);
   }
 
@@ -101,6 +101,19 @@ export const providerConfigs = {
       { id: "o3", displayName: "o3" },
       { id: "o3-mini", displayName: "o3-mini" },
       { id: "o4-mini", displayName: "o4-mini" },
+    ],
+  },
+  ollama: {
+    displayName: "Ollama (Local)",
+    models: [
+      { id: "llama3", displayName: "Llama 3" },
+      { id: "llama3:8b", displayName: "Llama 3 (8B)" },
+      { id: "llama3:70b", displayName: "Llama 3 (70B)" },
+      { id: "mistral", displayName: "Mistral" },
+      { id: "mixtral", displayName: "Mixtral" },
+      { id: "codellama", displayName: "CodeLlama" },
+      { id: "phi3", displayName: "Phi-3" },
+      { id: "gemma", displayName: "Gemma" },
     ],
   },
 } as const;

@@ -66,3 +66,37 @@
     background-color: rgb(from var(--theme-base) r g b / 5%);
   }
 }
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  
+  span {
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+}
+
+.dropdown-refresh {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  border-radius: 4px;
+  
+  &:hover {
+    background-color: var(--hover-bg);
+    color: var(--text);
+  }
+  
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}

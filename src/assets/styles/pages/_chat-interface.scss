@@ -9,6 +9,7 @@
   flex-direction: column;
   align-items: center;
   --screen-max-width: 48rem;
+  position: relative; /* Add this for positioning the overlay */
 
   .scroll-container {
     display: flex;
@@ -39,6 +40,39 @@
       flex-grow: 1;
     }
   }
+}
+
+/* Model pulling overlay styles */
+.model-pulling-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.model-pulling-content {
+  background-color: var(--theme-bg-chat);
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  
+  .spinner {
+    margin-bottom: 1rem;
+    display: block;
+  }
+}
+
+.model-pulling-info {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-top: 0.5rem;
 }
 
 .chat-messages {

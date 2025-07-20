@@ -21,6 +21,8 @@ import {
 type Configurable = {
   /** Enable summarization. */
   summarization: boolean;
+  /** Ollama server URL */
+  "providers.ollama.serverUrl": string;
 };
 
 type EncryptedConfigurable = {
@@ -42,12 +44,13 @@ const defaultConfiguration: ConfigurationState = {
   "providers.openai.apiKey": "",
   "providers.anthropic.apiKey": "",
   "providers.google.apiKey": "",
+  "providers.ollama.serverUrl": "http://localhost:11434",
 };
 
 function isEncryptedConfig(
   config: string,
 ): config is keyof EncryptedConfigurable {
-  return encryptedConfigKeys.includes(config);
+  return encryptedConfigKeys.includes(config as keyof EncryptedConfigurable);
 }
 
 export const useConfigurationStore = defineStore("configuration", {
@@ -57,7 +60,8 @@ export const useConfigurationStore = defineStore("configuration", {
 
   getters: {
     apiKeyExists(): boolean {
-      return encryptedConfigKeys.some((key) => this[key].trim() !== "");
+      return encryptedConfigKeys.some((key) => this[key]?.trim() !== "") ||
+        this["providers.ollama.serverUrl"].trim() !== "";
     },
   },
 

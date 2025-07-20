@@ -69,6 +69,14 @@ export const useChatStore = defineStore("chat", {
           })),
         );
       }
+      if (config["providers.ollama.host"]) {
+        models.push(
+          ...providerConfigs.ollama.models.map((m) => ({
+            ...m,
+            provider: "ollama" as const,
+          })),
+        );
+      }
       this.models = models;
       this.model =
         this.models.find((m) => m.id === internal.lastUsedModelId) || models[0];

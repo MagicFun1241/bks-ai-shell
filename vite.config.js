@@ -10,6 +10,9 @@ export default defineConfig({
       "@": resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    exclude: ['ollama'],
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,

@@ -13,13 +13,26 @@
         :cancelable="apiKeyExists"
       />
 
+      <!-- Ollama Model Manager -->
+      <div v-else-if="page === 'ollama-manager'" class="ollama-manager-page">
+        <div class="page-header">
+          <button class="btn btn-secondary" @click="page = 'chat-interface'">
+            ← Back to Chat
+          </button>
+          <h2>Ollama Model Manager</h2>
+        </div>
+        <OllamaModelManager />
+      </div>
+
       <ChatInterface
         v-else
         :initialMessages="messages"
         :openaiApiKey="openaiApiKey"
         :anthropicApiKey="anthropicApiKey"
         :googleApiKey="googleApiKey"
+        :ollamaHost="ollamaHost"
         @manage-models="page = 'api-key-form'"
+        @manage-ollama="page = 'ollama-manager'"
       />
     </template>
   </div>
@@ -28,6 +41,7 @@
 <script lang="ts">
 import ApiKeyForm from "./components/ApiKeyForm.vue";
 import ChatInterface from "./components/ChatInterface.vue";
+import OllamaModelManager from "./components/OllamaModelManager.vue";
 import { useChatStore } from "@/stores/chat";
 import { useConfigurationStore } from "@/stores/configuration";
 import { useInternalDataStore } from "@/stores/internalData";
@@ -38,6 +52,7 @@ export default {
   components: {
     ApiKeyForm,
     ChatInterface,
+    OllamaModelManager,
   },
 
   data() {
@@ -89,6 +104,7 @@ export default {
       openaiApiKey: "providers.openai.apiKey",
       anthropicApiKey: "providers.anthropic.apiKey",
       googleApiKey: "providers.google.apiKey",
+      ollamaHost: "providers.ollama.host",
     }),
     ...mapGetters(useConfigurationStore, ["apiKeyExists"]),
   },

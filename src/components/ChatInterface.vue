@@ -71,6 +71,14 @@
           </button>
         </Dropdown>
         <button
+          v-if="model?.provider === 'ollama'"
+          @click="$emit('manage-ollama')"
+          class="ollama-manager-btn"
+          title="Manage Ollama Models"
+        >
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+        <button
           v-if="canSendMessage"
           @click="submit"
           class="submit-btn"
@@ -119,6 +127,7 @@ export default {
     anthropicApiKey: String,
     openaiApiKey: String,
     googleApiKey: String,
+    ollamaHost: String,
   },
 
   setup(props) {
@@ -127,6 +136,7 @@ export default {
       anthropicApiKey: props.anthropicApiKey,
       openaiApiKey: props.openaiApiKey,
       googleApiKey: props.googleApiKey,
+      ollamaHost: props.ollamaHost,
     });
 
     return {

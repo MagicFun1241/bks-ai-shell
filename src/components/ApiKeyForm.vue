@@ -37,6 +37,17 @@
             v-model="googleApiKey"
           />
         </div>
+        <div class="input-group">
+          <label for="ollamaHost">
+            {{ providerConfigs["ollama"].displayName }}
+          </label>
+          <input
+            type="text"
+            id="ollamaHost"
+            :placeholder="`Ollama host URL (default: http://127.0.0.1:11434)`"
+            v-model="ollamaHost"
+          />
+        </div>
         <p class="api-info">
           Your API keys are stored only on your device and are never shared with
           any server except the selected AI providers.
@@ -85,6 +96,7 @@ export default {
       openaiApiKey: "",
       anthropicApiKey: "",
       googleApiKey: "",
+      ollamaHost: "",
     };
   },
 
@@ -94,12 +106,14 @@ export default {
       "providers.openai.apiKey",
       "providers.anthropic.apiKey",
       "providers.google.apiKey",
+      "providers.ollama.host",
     ]),
     dirty() {
       return (
         this.openaiApiKey !== this["providers.openai.apiKey"] ||
         this.anthropicApiKey !== this["providers.anthropic.apiKey"] ||
-        this.googleApiKey !== this["providers.google.apiKey"]
+        this.googleApiKey !== this["providers.google.apiKey"] ||
+        this.ollamaHost !== this["providers.ollama.host"]
       );
     },
     providerConfigs() {
@@ -117,6 +131,7 @@ export default {
       await this.configure("providers.openai.apiKey", this.openaiApiKey);
       await this.configure("providers.anthropic.apiKey", this.anthropicApiKey);
       await this.configure("providers.google.apiKey", this.googleApiKey);
+      await this.configure("providers.ollama.host", this.ollamaHost);
       this.syncModels();
       this.dirty = false;
       this.$emit("submit");
@@ -127,6 +142,7 @@ export default {
     this.openaiApiKey = this["providers.openai.apiKey"];
     this.anthropicApiKey = this["providers.anthropic.apiKey"];
     this.googleApiKey = this["providers.google.apiKey"];
+    this.ollamaHost = this["providers.ollama.host"];
   },
 };
 </script>

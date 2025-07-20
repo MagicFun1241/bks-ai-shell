@@ -4,12 +4,15 @@ import {
   streamText,
   generateObject,
   ToolExecutionError,
+  CoreTool,
+  generateText,
 } from "ai";
 import { useChat } from "@ai-sdk/vue";
 import { ref, watch } from "vue";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
+import { Ollama } from "ollama/browser";
 import {
   getDefaultInstructions,
   defaultTemperature,
@@ -19,14 +22,62 @@ import {
 import { getTools, UserRejectedError } from "@/tools";
 import { Message } from "ai";
 import { useTabState } from "@/stores/tabState";
+import { useConfigurationStore } from "@/stores/configuration";
 import { notify } from "@beekeeperstudio/plugin";
 import { z } from "zod";
+
+// Custom Ollama model adapter for AI SDK
+function createOllamaModel(ollama: Ollama, modelName: string) {
+  return {
+    id: modelName,
+    generateText: async (prompt: string, options?: any) => {
+      const response = await ollama.generate({
+        model: modelName,
+        prompt,
+        options: {
+          temperature: options?.temperature || defaultTemperature,
+        },
+      });
+      return { text: response.response };
+    },
+    streamText: async function* (prompt: string, options?: any) {
+      const stream = ollama.generate({
+        model: modelName,
+        prompt,
+        stream: true,
+        options: {
+          temperature: options?.temperature || defaultTemperature,
+        },
+      });
+      
+      if (stream && typeof stream[Symbol.asyncIterator] === 'function') {
+        for await (const part of stream) {
+          if (part.response) {
+            yield { textDelta: part.response };
+          }
+        }
+      } else {
+        // Fallback to non-streaming
+        const response = await ollama.generate({
+          model: modelName,
+          prompt,
+          stream: false,
+          options: {
+            temperature: options?.temperature || defaultTemperature,
+          },
+        });
+        yield { textDelta: response.response };
+      }
+    },
+  };
+}
 
 type AIOptions = {
   initialMessages: Message[];
   anthropicApiKey?: string;
   openaiApiKey?: string;
   googleApiKey?: string;
+  ollamaHost?: string;
 };
 
 export function useAI(options: AIOptions) {
@@ -43,46 +94,99 @@ export function useAI(options: AIOptions) {
         if (!modelId.value) {
           throw new Error("No provider or model selected.");
         }
-        const model = createProvider().chat(modelId.value);
-        const m = JSON.parse(fetchOptions.body) as any;
-        const result = streamText({
-          model,
-          messages: m.messages,
-          abortSignal: fetchOptions.signal,
-          system: await getDefaultInstructions(),
-          tools: getTools(async (name, params) => {
-            askingPermission.value = true;
-            await new Promise<void>((resolve) => {
-              const unwatch = watch(askingPermission, () => {
-                if (!askingPermission.value) {
-                  unwatch();
-                  resolve();
-                }
+        
+        if (providerId.value === "ollama") {
+          // Handle Ollama using custom model adapter
+          const config = useConfigurationStore();
+          const ollama = new Ollama({ 
+            host: config['providers.ollama.host'] || 'http://127.0.0.1:11434' 
+          });
+          
+          const m = JSON.parse(fetchOptions.body) as any;
+          const model = createOllamaModel(ollama, modelId.value);
+          
+          const result = streamText({
+            model,
+            messages: m.messages,
+            abortSignal: fetchOptions.signal,
+            system: await getDefaultInstructions(),
+            tools: getTools(async (name, params) => {
+              askingPermission.value = true;
+              await new Promise<void>((resolve) => {
+                const unwatch = watch(askingPermission, () => {
+                  if (!askingPermission.value) {
+                    unwatch();
+                    resolve();
+                  }
+                });
               });
-            });
-            askingPermission.value = false;
-            return permitted;
-          }),
-          maxSteps: 10,
-          temperature: defaultTemperature,
-        });
-        return result.toDataStreamResponse({
-          getErrorMessage: (error) => {
-            if (NoSuchToolError.isInstance(error)) {
-              return "The model tried to call a unknown tool.";
-            } else if (InvalidToolArgumentsError.isInstance(error)) {
-              return "The model called a tool with invalid arguments.";
-            } else if (ToolExecutionError.isInstance(error)) {
-              if (UserRejectedError.isInstance(error.cause)) {
-                return `User rejected tool call. (toolCallId: ${error.toolCallId})`;
+              askingPermission.value = false;
+              return permitted;
+            }),
+            maxSteps: 10,
+            temperature: defaultTemperature,
+          });
+          
+          return result.toDataStreamResponse({
+            getErrorMessage: (error) => {
+              if (NoSuchToolError.isInstance(error)) {
+                return "The model tried to call a unknown tool.";
+              } else if (InvalidToolArgumentsError.isInstance(error)) {
+                return "The model called a tool with invalid arguments.";
+              } else if (ToolExecutionError.isInstance(error)) {
+                if (UserRejectedError.isInstance(error.cause)) {
+                  return `User rejected tool call. (toolCallId: ${error.toolCallId})`;
+                } else {
+                  return "An error occurred during tool execution.";
+                }
               } else {
-                return "An error occurred during tool execution.";
+                return "An unknown error occurred.";
               }
-            } else {
-              return "An unknown error occurred.";
-            }
-          },
-        });
+            },
+          });
+        } else {
+          // Handle other providers with AI SDK
+          const model = createProvider().chat(modelId.value);
+          const m = JSON.parse(fetchOptions.body) as any;
+          const result = streamText({
+            model,
+            messages: m.messages,
+            abortSignal: fetchOptions.signal,
+            system: await getDefaultInstructions(),
+            tools: getTools(async (name, params) => {
+              askingPermission.value = true;
+              await new Promise<void>((resolve) => {
+                const unwatch = watch(askingPermission, () => {
+                  if (!askingPermission.value) {
+                    unwatch();
+                    resolve();
+                  }
+                });
+              });
+              askingPermission.value = false;
+              return permitted;
+            }),
+            maxSteps: 10,
+            temperature: defaultTemperature,
+          });
+          return result.toDataStreamResponse({
+            getErrorMessage: (error) => {
+              if (NoSuchToolError.isInstance(error)) {
+                return "The model tried to call a unknown tool.";
+              } else if (InvalidToolArgumentsError.isInstance(error)) {
+                return "The model called a tool with invalid arguments.";
+              } else if (ToolExecutionError.isInstance(error)) {
+                if (UserRejectedError.isInstance(error.cause)) {
+                  return `User rejected tool call. (toolCallId: ${error.toolCallId})`;
+                } else {
+                  return "An error occurred during tool execution.";
+                }
+              } else {
+                return "An unknown error occurred.";
+              }
+            },
+          });
+        }
       },
       onError: (error) => {
         notify("pluginError", {
@@ -134,6 +238,11 @@ export function useAI(options: AIOptions) {
       return createOpenAI({
         compatibility: "strict",
         apiKey: options.openaiApiKey,
+      });
+    } else if (providerId.value === "ollama") {
+      const config = useConfigurationStore();
+      return new Ollama({ 
+        host: config['providers.ollama.host'] || 'http://127.0.0.1:11434' 
       });
     }
 

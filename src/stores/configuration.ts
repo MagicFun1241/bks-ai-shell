@@ -27,6 +27,7 @@ type EncryptedConfigurable = {
   "providers.openai.apiKey": string;
   "providers.anthropic.apiKey": string;
   "providers.google.apiKey": string;
+  "providers.ollama.host": string;
 };
 
 type ConfigurationState = Configurable & EncryptedConfigurable;
@@ -35,6 +36,7 @@ const encryptedConfigKeys: (keyof EncryptedConfigurable)[] = [
   "providers.openai.apiKey",
   "providers.anthropic.apiKey",
   "providers.google.apiKey",
+  "providers.ollama.host",
 ];
 
 const defaultConfiguration: ConfigurationState = {
@@ -42,12 +44,13 @@ const defaultConfiguration: ConfigurationState = {
   "providers.openai.apiKey": "",
   "providers.anthropic.apiKey": "",
   "providers.google.apiKey": "",
+  "providers.ollama.host": "http://127.0.0.1:11434",
 };
 
 function isEncryptedConfig(
   config: string,
 ): config is keyof EncryptedConfigurable {
-  return encryptedConfigKeys.includes(config);
+  return encryptedConfigKeys.includes(config as keyof EncryptedConfigurable);
 }
 
 export const useConfigurationStore = defineStore("configuration", {
@@ -57,7 +60,8 @@ export const useConfigurationStore = defineStore("configuration", {
 
   getters: {
     apiKeyExists(): boolean {
-      return encryptedConfigKeys.some((key) => this[key].trim() !== "");
+      return encryptedConfigKeys.some((key) => this[key]?.trim() !== "") || 
+             this["providers.ollama.host"]?.trim() !== "";
     },
   },
 

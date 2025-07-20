@@ -3,26 +3,46 @@ import mongodbInstructions from "../mongodb-instructions.txt?raw";
 import { getConnectionInfo, getTables } from "@beekeeperstudio/plugin";
 
 export async function getDefaultInstructions() {
-  const response = await getConnectionInfo();
-  const tables = await getTables().then((tables) =>
-    tables.filter(
-      (table) =>
-        table.schema !== "information_schema" &&
-        table.schema !== "pg_catalog" &&
-        table.schema !== "pg_toast" &&
-        table.schema !== "sys" &&
-        table.schema !== "INFORMATION_SCHEMA",
-    ),
-  );
+  let response;
+  try {
+    response = await getConnectionInfo();
+  } catch (error) {
+    console.warn('Failed to get connection info:', error);
+    response = {
+      connectionType: 'unknown',
+      readOnlyMode: false,
+      databaseName: 'unknown',
+      defaultSchema: '',
+    };
+  }
+  
+  let tables: Array<{ name: string; schema?: string }> = [];
+  try {
+    const tablesResult = await getTables();
+    if (tablesResult && Array.isArray(tablesResult)) {
+      tables = tablesResult.filter(
+        (table) =>
+          table.schema !== "information_schema" &&
+          table.schema !== "pg_catalog" &&
+          table.schema !== "pg_toast" &&
+          table.schema !== "sys" &&
+          table.schema !== "INFORMATION_SCHEMA",
+      );
+    }
+  } catch (error) {
+    console.warn('Failed to get tables:', error);
+    tables = [];
+  }
+  
   let result = instructions;
   result = result.replace("{current_date}", getCurrentDateFormatted());
-  result = result.replace("{connection_type}", response.connectionType);
-  result = result.replace("{read_only_mode}", response.readOnlyMode.toString());
-  result = result.replace("{database_name}", response.databaseName);
-  result = result.replace("{default_schema}", response.defaultSchema || "");
+  result = result.replace("{connection_type}", response?.connectionType || 'unknown');
+  result = result.replace("{read_only_mode}", (response?.readOnlyMode || false).toString());
+  result = result.replace("{database_name}", response?.databaseName || 'unknown');
+  result = result.replace("{default_schema}", response?.defaultSchema || "");
   result = result.replace("{tables}", JSON.stringify(tables));
 
-  if (response.connectionType === "mongodb") {
+  if (response?.connectionType === "mongodb") {
     result = mongodbInstructions.replace("{instructions.txt}", result);
   }
 
@@ -101,6 +121,29 @@ export const providerConfigs = {
       { id: "o3", displayName: "o3" },
       { id: "o3-mini", displayName: "o3-mini" },
       { id: "o4-mini", displayName: "o4-mini" },
+    ],
+  },
+  ollama: {
+    displayName: "Ollama (Local)",
+    models: [
+      { id: "llama3.1", displayName: "Llama 3.1" },
+      { id: "llama3.1:8b", displayName: "Llama 3.1 8B" },
+      { id: "llama3.1:70b", displayName: "Llama 3.1 70B" },
+      { id: "llama3.2", displayName: "Llama 3.2" },
+      { id: "llama3.2:8b", displayName: "Llama 3.2 8B" },
+      { id: "llama3.2:70b", displayName: "Llama 3.2 70B" },
+      { id: "mistral", displayName: "Mistral" },
+      { id: "mistral:7b", displayName: "Mistral 7B" },
+      { id: "codellama", displayName: "Code Llama" },
+      { id: "codellama:7b", displayName: "Code Llama 7B" },
+      { id: "codellama:13b", displayName: "Code Llama 13B" },
+      { id: "codellama:34b", displayName: "Code Llama 34B" },
+      { id: "phi3", displayName: "Phi-3" },
+      { id: "phi3:mini", displayName: "Phi-3 Mini" },
+      { id: "phi3:medium", displayName: "Phi-3 Medium" },
+      { id: "qwen2", displayName: "Qwen2" },
+      { id: "qwen2:7b", displayName: "Qwen2 7B" },
+      { id: "qwen2:72b", displayName: "Qwen2 72B" },
     ],
   },
 } as const;
